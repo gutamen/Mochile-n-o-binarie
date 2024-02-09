@@ -16,15 +16,8 @@
 %define openrw      102o  		; flag open()
 %define userWR      644o  		; Read+Write+Execute
 %define allWRE      666o
-%define _cat	  	0x20544143
-%define _ls		0x0000534C
-%define _cd		0x00204443
-%define _quit	0x54495551
-%define _cout	0x54554F43
-%define _cint	0x544E4943
-%define _mkdr	0x52444B4D
-%define _cede	0x45444543
-%define _dele	0x454C4544
+%define _newLine    10
+%define _return     13
 
 
 section .data
@@ -53,7 +46,6 @@ section .data
     strOla  : db "Testi", 10, 0
     strOlaL : equ $-strOla
 	
-	jumpLine : db 10, 0 
 	
 	limpaTerminal       : db   27,"[H",27,"[2J"    ; <ESC> [H <ESC> [2J
 	limpaTerminalL      : equ  $-limpaTerminal         ; tamanho da string para limpar terminal
@@ -66,8 +58,6 @@ section .data
 	
 	; moldura para print
 	
-	primeiraLinha	: db "|", 0x20, "Número", 0x20, "|", 0x20, "Nome", 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, "|", " Extensão ", "|", 0x20, "Tamanho",  10, 0
-	primeiraLinhaL	: equ $-primeiraLinha
 	
 	inicioLinha		: db "|", 0x20, 0
 	inicioLinhaL	: equ $-inicioLinha
@@ -99,34 +89,14 @@ section .data
 	
 	testeChars		: db "test.txt",0
 
-
-    testesaida      : db "/home/gustavo/Documentos/jamanta.txt", 0
 	beep			: db 0x07, 0
 
-    finalBlocos     : dq 0xffffffffffffffff, 0
 
 section .bss
     
-
-    tamanhoBloco                        : resq 1 
-    ponteiroRaiz                        : resq 1
-    ponteiroBlocosLimpos                : resq 1
-    tamanhoArmazenamento                : resq 1
-    quantidadeBlocos                    : resb 6
-
-	ponteiroDiretorioAtualNoDispositivo	: resq 1
-    ponteiroDiretorioAtual  		    : resq 1
-    tamanhoDiretorioAtual   		    : resq 1
-
-    ponteiroDispositivo                 : resq 1
-    argv                                : resq 1
-    argc                                : resq 1
-    buffer                              : resq 1  
-    ponteiroDispositivoNoSistema        : resq 1
-    ponteiroPilhaAntigo                 : resq 1
-
-	bufferCaracteres                    : resb 512
-    bufferTeclado                       : resb 512
+    dataPointer : resq 1
+    readBuffer : resq 32
+    bagSize  : resq 1
 
 section .text
 
@@ -134,13 +104,90 @@ section .text
 
 _start:
 	
-	mov rax, _write
-	mov rdi, 1
-	lea rsi, [beep]
-	mov rdx, 1
-	syscall
+    mov rax, _open
+    mov rdi, [rsp+16]
+    mov rsi, readwrite
+    mov rdx, userWR
+    syscall
+
+    mov [dataPointer], rax
+
+    xor r8, r8
+    readSize:
+        mov rax, _read
+        mov rdi, [dataPointer]
+        lea rsi, [readBuffer+r8]
+        xor rdx, rdx
+        inc rdx
+        syscall
+       
+        xor rax, rax
+        mov al, BYTE[readBuffer+r8]
+        cmp al, 10
+        je readSizeReaded
+        inc r8
+        jmp readSize
+        readSizeReaded:
+
+    %include "pushall.asm"
+    lea rdi, [readBuffer]
+    call char2Long
+    mov [bagSize], rax
+    %include "popall.asm"
+    
+
+    xor r8, r8
+    xor r9, r9
+    xor r10, r10
+    mov r15, 32
+    firstNumbers:
 
 
 	mov rax, _exit
 	mov rdi, 0
 	syscall
+
+char2Long:   ; long char2Int(char *number[rdi])
+    push rbp
+    mov rbp, rsp
+
+    xor r8, r8
+    xor r9, r9
+    countLoop:
+        mov r9b, [rdi+r8]
+
+        cmp r9b, 57
+        jg countEnd
+        cmp r9b, 48
+        jl countEnd
+        inc r8
+        jmp countLoop
+
+        countEnd:
+    
+    mov rcx, r8
+    xor r8, r8
+    inc r8
+    xor r10, r10
+    converterLoop:
+        xor rax, rax
+        mov al, [rdi+rcx-1]
+        sub rax, 48
+        imul rax, r8
+        imul r8, 10
+        dec rcx
+        add r10, rax
+        ola:
+        jecxz convertEnd
+        jmp converterLoop
+    
+        convertEnd:
+
+
+   mov rax, r10 
+    
+
+
+    mov rsp, rbp
+    pop rbp
+    ret
