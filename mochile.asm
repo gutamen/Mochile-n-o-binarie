@@ -71,32 +71,17 @@ section .data
     espacamento     : db 0x20, 0x20, 0x20, 0x20, 0x20, 0
     espacamentoL    : equ $-espacamento
 	
-	typeDir		: db "DIR", 0x20, 0
-	typeArch	: db "ARCH", 0
-	typeSize	: db 4
-	
-	typeFinish		: db 0x20, "|", 0x09, 0
-	typeFinishL		: equ $-typeFinish
-	
-	dirSizeChar	: db "-------", 0x09, 0x09, "|", 10, 0
-	dirSizeCharL	: equ $-dirSizeChar
-	
-	archFinish		: db 0x09, "|", 10, 0
-	archFinishL		: equ $-archFinish
-
-    testeArquivo    : db "./teste.txt", 0
-    testeArquivoL   : equ $-testeArquivo 
-	
-	testeChars		: db "test.txt",0
-
 	beep			: db 0x07, 0
 
 
 section .bss
     
-    dataPointer : resq 1
-    readBuffer : resq 32
-    bagSize  : resq 1
+    stackPointer        : resq 1
+    firstNumberPointer  : resq 1
+    dataPointer         : resq 1
+    readBuffer          : resq 32
+    bagSize             : resq 1
+    trashBuffer         : resq 1
 
 section .text
 
@@ -135,12 +120,92 @@ _start:
     mov [bagSize], rax
     %include "popall.asm"
     
-
+    sub rsp, 8
+    mov [firstNumberPointer], rsp
     xor r8, r8
     xor r9, r9
     xor r10, r10
-    mov r15, 32
     firstNumbers:
+        mov rax, _read
+        mov rdi, [dataPointer]
+        lea rsi, [readBuffer+r8]
+        xor rdx, rdx
+        inc rdx
+        syscall
+       
+        xor rax, rax
+        mov al, BYTE[readBuffer+r8]
+        cmp al, 10
+        je endFirstNumber
+        cmp al, 48
+        jl newFirstNumber
+        cmp al, 57
+        jg newFirstNumber
+        inc r8
+        jmp firstNumbers
+        
+        newFirstNumber:
+            checkFirstNumber:
+            mov rax, _read
+            mov rdi, [dataPointer]
+            lea rsi, [trashBuffer]
+            xor rdx, rdx
+            inc rdx
+            syscall
+
+            xor rax, rax
+            mov al, [trashBuffer]
+            cmp al, 10
+            je endFirstNumber
+            cmp al, 48
+            jge preResetFirst
+            
+
+            preResetFirst: 
+                cmp al, 57
+                jle resetFirst
+                jmp checkFirstNumber
+
+                resetFirst:
+                    mov rax, _seek
+                    mov rdi, [dataPointer]
+                    xor rsi, rsi
+                    dec rsi
+                    xor rdx, rdx
+                    inc rdx
+                    syscall
+                
+
+            ;sub rsp, 8
+            ;mov [stackPointer], rsp
+            ;inc r10
+            ;xor r8, r8
+            
+            ;mov [rsp], r8
+
+            %include "pushall.asm"
+            lea rdi, [readBuffer]
+            call char2Long
+            ;mov r8, [stackPointer]
+            ;mov [r8], rax
+            mov [stackPointer], rax
+            %include "popall.asm"
+            
+            mov r8, [firstNumberPointer]
+            mov r15, [stackPointer]
+            neg r10
+            mov [r8 + r10 * 8], r15
+            neg r10
+            sub rsp, 8
+            inc r10
+            xor r8, r8
+            jmp firstNumbers
+
+    endFirstNumber:
+
+
+
+
 
 
 	mov rax, _exit
@@ -184,8 +249,19 @@ char2Long:   ; long char2Int(char *number[rdi])
         convertEnd:
 
 
-   mov rax, r10 
+    mov rax, r10 
     
+
+
+    mov rsp, rbp
+    pop rbp
+    ret
+
+nextNumber: ; long nextNumber(FileDescriptor *file[rdi])
+    push rbp
+    mov rbp, rsp
+
+
 
 
     mov rsp, rbp
