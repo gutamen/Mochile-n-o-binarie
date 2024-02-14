@@ -78,9 +78,11 @@ section .bss
     
     stackPointer        : resq 1
     firstNumberPointer  : resq 1
+    secondNumberPointer : resq 1
     dataPointer         : resq 1
     readBuffer          : resq 32
     bagSize             : resq 1
+    itemCount           : resq 1
     trashBuffer         : resq 1
 
 section .text
@@ -203,6 +205,92 @@ _start:
 
     endFirstNumber:
 
+    mov [itemCount], r10
+
+    sub rsp, 8
+    mov [secondNumberPointer], rsp
+    xor r8, r8
+    xor r9, r9
+    xor r10, r10
+    secondNumbers:
+        mov rax, _read
+        mov rdi, [dataPointer]
+        lea rsi, [readBuffer+r8]
+        xor rdx, rdx
+        inc rdx
+        syscall
+       
+        xor rax, rax
+        mov al, BYTE[readBuffer+r8]
+        cmp al, 10
+        je endSecondNumber
+        cmp al, 48
+        jl newSecondNumber
+        cmp al, 57
+        jg newSecondNumber
+        inc r8
+        jmp secondNumbers
+        
+        newSecondNumber:
+            checkSecondNumber:
+            mov rax, _read
+            mov rdi, [dataPointer]
+            lea rsi, [trashBuffer]
+            xor rdx, rdx
+            inc rdx
+            syscall
+
+            xor rax, rax
+            mov al, [trashBuffer]
+            cmp al, 10
+            je endSecondNumber
+            cmp al, 48
+            jge preResetSecond
+            
+
+            preResetSecond: 
+                cmp al, 57
+                jle resetSecond
+                jmp checkFirstNumber
+
+                resetSecond:
+                    mov rax, _seek
+                    mov rdi, [dataPointer]
+                    xor rsi, rsi
+                    dec rsi
+                    xor rdx, rdx
+                    inc rdx
+                    syscall
+                
+
+            ;sub rsp, 8
+            ;mov [stackPointer], rsp
+            ;inc r10
+            ;xor r8, r8
+            
+            ;mov [rsp], r8
+
+            %include "pushall.asm"
+            lea rdi, [readBuffer]
+            call char2Long
+            ;mov r8, [stackPointer]
+            ;mov [r8], rax
+            mov [stackPointer], rax
+            %include "popall.asm"
+            
+            mov r8, [secondNumberPointer]
+            mov r15, [stackPointer]
+            neg r10
+            mov [r8 + r10 * 8], r15
+            neg r10
+            sub rsp, 8
+            inc r10
+            cmp r10, [itemCount]
+            je endSecondNumber
+            xor r8, r8
+            jmp secondNumbers
+
+    endSecondNumber:
 
 
 
