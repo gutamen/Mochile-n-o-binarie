@@ -84,6 +84,9 @@ section .bss
     bagSize             : resq 1
     itemCount           : resq 1
     trashBuffer         : resq 1
+    weightPointer       : resq 1
+    gainPointer         : resq 1
+    advantagePointer    : resq 1
 
 section .text
 
@@ -291,11 +294,55 @@ _start:
             jmp secondNumbers
 
     endSecondNumber:
+   
+    bagInit:
+    xor rbx, rbx
+    mov rbx, 8
+    imul rbx, [itemCount]
+    
+    sub rsp, rbx
+    mov [gainPointer], rsp
+    sub rsp, rbx
+    mov [weightPointer], rsp
+    sub rsp, rbx
+    mov [advantagePointer], rsp
+
+    xor r8, r8
+    xor r9, r9
+    xor r15, r15
+    mov r10, [firstNumberPointer]
+    mov r11, [secondNumberPointer]
+    itemOrganize:
+        neg r8
+        mov rax, [firstNumberPointer + r8 * 8]
+        mov rbx, [secondNumberPointer + r8 * 8]
+        neg r8
+
+        xor rcx, rcx
+        mov [weightPointer + r8 * 8], rcx
+        mov [gainPointer + r8 * 8], rcx
+        mov [advantagePointer + r8 * 8], rcx
+        
+        cvtsi2sd xmm0, [rax]
+        cvtsi2sd xmm1, [rbx]
+
+        divsd xmm0, xmm1
+        pause:
+
+
+        inc r8
+        cmp r8, [itemCount]
+        je endOrganize
+        jmp itemOrganize
+    endOrganize:
 
 
 
 
 
+
+
+endProgram:
 	mov rax, _exit
 	mov rdi, 0
 	syscall
@@ -330,7 +377,6 @@ char2Long:   ; long char2Int(char *number[rdi])
         imul r8, 10
         dec rcx
         add r10, rax
-        ola:
         jecxz convertEnd
         jmp converterLoop
     
@@ -345,13 +391,3 @@ char2Long:   ; long char2Int(char *number[rdi])
     pop rbp
     ret
 
-nextNumber: ; long nextNumber(FileDescriptor *file[rdi])
-    push rbp
-    mov rbp, rsp
-
-
-
-
-    mov rsp, rbp
-    pop rbp
-    ret
