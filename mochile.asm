@@ -87,6 +87,9 @@ section .bss
     weightPointer       : resq 1
     gainPointer         : resq 1
     advantagePointer    : resq 1
+    tempAdvantage       : resq 1
+    tempWeight          : resq 1
+    tempGain            : resq 1
 
 section .text
 
@@ -310,52 +313,71 @@ _start:
     xor r8, r8
     xor r9, r9
     xor r15, r15
-    mov r10, [firstNumberPointer]
-    mov r11, [secondNumberPointer]
+    mov r10, [firstNumberPointer]       ; Considerando primeira linha como ganho
+    mov r11, [secondNumberPointer]      ; Considerando segunda linha como peso
     mov rbx, [weightPointer]
     mov rcx, [gainPointer]
     mov rdx, [advantagePointer]
     itemOrganize:
-        neg r8
+        neg r8 
         cvtsi2sd xmm0, [r10 + r8 * 8]
         cvtsi2sd xmm1, [r11 + r8 * 8]
         neg r8
 
         xor rdi, rdi
-        mov [rbx + r8 * 8], rcx
-        mov [rcx + r8 * 8], rcx
-        mov [rdx + r8 * 8], rcx
+        mov [rbx + r8 * 8], rdi
+        mov [rcx + r8 * 8], rdi
+        mov [rdx + r8 * 8], rdi
        
         divsd xmm0, xmm1
 
         xor r15, r15
+        dec r15
         insertionSort:
-            movsd xmm3, [rdx + r15 * 8]
             inc r15
+            movsd xmm3, [rdx + r15 * 8]
             comisd xmm0, xmm3
             jb insertionSort
             je insertionSort
             
-            mov r14, r15
-            dec r14
-            mov rsi, r15
-            dec rsi
+            mov rsi, [rbx + r15 * 8]
+            mov [tempWeight], rsi
+            mov rsi, [rcx + r15 * 8]
+            mov [tempGain], rsi
+            mov rsi, [rdx + r15 * 8]
+            mov [tempAdvantage], rsi
+
+            mov rsi, [r10 + r8 * 8]
+            mov [rbx + r15 * 8], rsi
+            mov rsi, [r11 + r8 * 8]
+            mov [rcx + r15 * 8], rsi
+            movsd [rdx + r15 * 8], xmm0
+             
+            cmp r8, r15
+            je pushStackEnd
+
+            inc r15
             pushStack:
-                mov r12, [rbx + r14 * 8]
-                inc r14
-                mov [rbx + r14 * 8], r12
-                dec r14
-                
+                mov rsi, [tempWeight]
+                mov r12, [rbx + r15 * 8]
+                mov [rbx + r15 * 8], rsi
+                mov [tempWeight], r12
+    
+                mov rsi, [tempGain]
                 mov r12, [rcx + r14 * 8]
-                inc r14
-                mov [rcx + r14 * 8], r12
-                dec r14
+                mov [rcx + r15 * 8], rsi
+                mov [tempGain], r12
 
+                mov rsi, [tempAdvantage]
                 mov r12, [rdx + r14 * 8]
-                inc r14
-                mov [rdx + r14 * 8], r12
+                mov [rdx + r15 * 8], rsi
+                mov [tempAdvantage], r12
 
-               
+                inc r15
+                cmp r8, r15
+                jge pushStack
+                
+            pushStackEnd: 
 
 
 
