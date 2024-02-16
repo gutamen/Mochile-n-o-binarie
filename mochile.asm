@@ -312,25 +312,51 @@ _start:
     xor r15, r15
     mov r10, [firstNumberPointer]
     mov r11, [secondNumberPointer]
+    mov rbx, [weightPointer]
+    mov rcx, [gainPointer]
+    mov rdx, [advantagePointer]
     itemOrganize:
         neg r8
-        mov rax, [firstNumberPointer + r8 * 8]
-        mov rbx, [secondNumberPointer + r8 * 8]
+        cvtsi2sd xmm0, [r10 + r8 * 8]
+        cvtsi2sd xmm1, [r11 + r8 * 8]
         neg r8
 
-        xor rcx, rcx
-        mov [weightPointer + r8 * 8], rcx
-        mov [gainPointer + r8 * 8], rcx
-        mov [advantagePointer + r8 * 8], rcx
-        
-        cvtsi2sd xmm0, [rax]
-        cvtsi2sd xmm1, [rbx]
-
+        xor rdi, rdi
+        mov [rbx + r8 * 8], rcx
+        mov [rcx + r8 * 8], rcx
+        mov [rdx + r8 * 8], rcx
+       
         divsd xmm0, xmm1
-        pause:
-        
+
+        xor r15, r15
         insertionSort:
-            comisd xmm0, [advantagePointer + r15 * 8]
+            movsd xmm3, [rdx + r15 * 8]
+            inc r15
+            comisd xmm0, xmm3
+            jb insertionSort
+            je insertionSort
+            
+            mov r14, r15
+            dec r14
+            mov rsi, r15
+            dec rsi
+            pushStack:
+                mov r12, [rbx + r14 * 8]
+                inc r14
+                mov [rbx + r14 * 8], r12
+                dec r14
+                
+                mov r12, [rcx + r14 * 8]
+                inc r14
+                mov [rcx + r14 * 8], r12
+                dec r14
+
+                mov r12, [rdx + r14 * 8]
+                inc r14
+                mov [rdx + r14 * 8], r12
+
+               
+
 
 
         inc r8
