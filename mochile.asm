@@ -328,6 +328,9 @@ _start:
 
         divsd xmm0, xmm1
         pause:
+        
+        insertionSort:
+            comisd xmm0, [advantagePointer + r15 * 8]
 
 
         inc r8
