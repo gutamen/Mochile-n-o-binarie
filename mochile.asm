@@ -76,6 +76,7 @@ section .data
 
 section .bss
     
+    fracionaryOrBinary  : resq 1
     stackPointer        : resq 1
     firstNumberPointer  : resq 1
     secondNumberPointer : resq 1
@@ -90,6 +91,7 @@ section .bss
     tempAdvantage       : resq 1
     tempWeight          : resq 1
     tempGain            : resq 1
+    bagGain             : resq 1
 
 section .text
 
@@ -97,11 +99,29 @@ section .text
 
 _start:
 	
+    mov rdi, [rsp]
+    xor rsi, rsi
+    inc rsi
+    inc rsi
+    inc rsi
+    cmp rdi, rsi
+    jne endProgram
+
+    mov rsi, [rsp+24]
+    mov dil, [rsi]
+    cmp dil, 102
+    jne notFracionary
+    inc QWORD[fracionaryOrBinary]
+    notFracionary:
+
     mov rax, _open
     mov rdi, [rsp+16]
     mov rsi, readwrite
     mov rdx, userWR
     syscall
+
+    
+    teste:
 
     mov [dataPointer], rax
 
@@ -347,9 +367,11 @@ _start:
             mov rsi, [rdx + r15 * 8]
             mov [tempAdvantage], rsi
 
-            mov rsi, [r10 + r8 * 8]
-            mov [rbx + r15 * 8], rsi
+            neg r8
             mov rsi, [r11 + r8 * 8]
+            mov [rbx + r15 * 8], rsi
+            mov rsi, [r10 + r8 * 8]
+            neg r8
             mov [rcx + r15 * 8], rsi
             movsd [rdx + r15 * 8], xmm0
              
@@ -364,12 +386,12 @@ _start:
                 mov [tempWeight], r12
     
                 mov rsi, [tempGain]
-                mov r12, [rcx + r14 * 8]
+                mov r12, [rcx + r15 * 8]
                 mov [rcx + r15 * 8], rsi
                 mov [tempGain], r12
 
                 mov rsi, [tempAdvantage]
-                mov r12, [rdx + r14 * 8]
+                mov r12, [rdx + r15 * 8]
                 mov [rdx + r15 * 8], rsi
                 mov [tempAdvantage], r12
 
@@ -385,12 +407,35 @@ _start:
         cmp r8, [itemCount]
         je endOrganize
         jmp itemOrganize
+    
     endOrganize:
+        
+        xor r8, r8
+        mov r9, [itemCount]
+        dec r9
+        dec r8
+        mov rsi, [bagSize]
+        putInBag:
+            inc r8
+            sub rsi, [rbx + r8 * 8]
+            cmp rsi, 0
+            je fullbag
+            jl overflowBag
+            cmp r8, r9
+            je fullbag
+            jmp putInBag
 
-
-
-
-
+        overflowBag:
+            dec r8
+        fullbag:
+            
+            xor r9, r9
+            xor rax, rax
+            gainSum:
+                add rax, [rcx + r9 * 8]
+                inc r9
+                cmp r8, r9
+                jge gainSum
 
 
 endProgram:
@@ -441,4 +486,7 @@ char2Long:   ; long char2Int(char *number[rdi])
     mov rsp, rbp
     pop rbp
     ret
+
+
+
 
