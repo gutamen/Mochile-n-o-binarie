@@ -92,6 +92,7 @@ section .bss
     tempWeight          : resq 1
     tempGain            : resq 1
     bagGain             : resq 1
+    lastItemsPointer    : resq 1
 
 section .text
 
@@ -109,7 +110,7 @@ _start:
 
     mov rsi, [rsp+24]               ; Pegando o argumento de tipo de Mochila
     mov dil, [rsi]
-    cmp dil, 70
+    cmp dil, 70                     ; F
     jne notFracionary
     inc QWORD[fracionaryOrBinary]   ; Marcação de mochila fracionária
     cmp dil, 70
@@ -117,7 +118,7 @@ _start:
 
     notFracionary:
     
-    cmp dil, 66
+    cmp dil, 66                     ; B
     jne modeError                   ; Caso nenhum dos modos seja utilizado é considerado erro
 
     
@@ -402,6 +403,7 @@ _start:
     endOrganize:
         
         xor r8, r8
+        xor r10, r10
         mov r9, [itemCount]
         dec r9
         dec r8
@@ -409,17 +411,51 @@ _start:
         putInBag:                   ; Coloca os itens na mochila até o espaço acabar
             inc r8
             sub rsi, [rbx + r8 * 8] ; Subtraindo os peso dos itens
-            cmp rsi, 0
-            je fullbag
+            cmp rsi, r10
+            je zeroBag
             jl overflowBag
             cmp r8, r9
-            je fullbag
+            je zeroBag
             jmp putInBag
 
         overflowBag:
+            add rsi, [rbx + r8 * 8] ; Caso ocorra da capacidade da mochila estourar remove o item
             dec r8
-        fullbag:
-            
+            xor r13, r13
+            mov rdi, r8 
+            inc rdi
+    
+            sub rsp, 8
+            mov [lastItemsPointer], rsp ; Guarda na pilha um ponteiro para armazenar os itens que serão incluídos
+            mov r14, rsp
+            mov [r14], r10
+            xor r11, r11
+            filingBag:
+                sub rsi, [rbx + rdi * 8]; Teste dos próximos itens
+                xor r10, r10
+                mov [r14 + r11 * 8], rdi        
+                cmp rsi, r10
+                je zeroBag              ; Enquanto houver espaço os testes continuam ou acabar os itens para teste
+                jg nextItem
+                jl overflowItem
+                
+                overflowItem:
+                    add rsi, [rbx + rdi * 8]
+                    inc rdi
+                    mov [r14 + r11 * 8], r10    ; item inserido continua grande para mochila, pula para o próximo ou para em caso de fim da lista de itens
+                    cmp rdi, r9
+                    je zeroBag
+                    jmp filingBag
+
+                nextItem:
+                    inc rdi
+                    inc r11
+                    sub rsp, 8
+                    cmp rdi, r9
+                    jne filingBag
+                
+
+            zeroBag:
             xor r9, r9
             xor rax, rax
             gainSum:
