@@ -104,29 +104,35 @@ _start:
     inc rsi
     inc rsi
     inc rsi
-    cmp rdi, rsi
+    cmp rdi, rsi                    ; Teste para verificar a quantidade de argumentos
     jne endProgram
 
-    mov rsi, [rsp+24]
+    mov rsi, [rsp+24]               ; Pegando o argumento de tipo de Mochila
     mov dil, [rsi]
-    cmp dil, 102
+    cmp dil, 70
     jne notFracionary
-    inc QWORD[fracionaryOrBinary]
-    notFracionary:
+    inc QWORD[fracionaryOrBinary]   ; Marcação de mochila fracionária
+    cmp dil, 70
+    je modeDefined
 
+    notFracionary:
+    
+    cmp dil, 66
+    jne modeError                   ; Caso nenhum dos modos seja utilizado é considerado erro
+
+    
+
+    
+    modeDefined:
     mov rax, _open
     mov rdi, [rsp+16]
     mov rsi, readwrite
     mov rdx, userWR
-    syscall
+    syscall                         ; Abre o arquivo para leitura
 
-    
-    teste:
-
-    mov [dataPointer], rax
-
+    mov [dataPointer], rax          ; Armazena o ponteiro *FILE
     xor r8, r8
-    readSize:
+    readSize:                       ; Laço para leitura do tamanho da mochila
         mov rax, _read
         mov rdi, [dataPointer]
         lea rsi, [readBuffer+r8]
@@ -136,7 +142,7 @@ _start:
        
         xor rax, rax
         mov al, BYTE[readBuffer+r8]
-        cmp al, 10
+        cmp al, 10                  ; Parada quando econtrar caractere de nova linha
         je readSizeReaded
         inc r8
         jmp readSize
@@ -144,16 +150,16 @@ _start:
 
     %include "pushall.asm"
     lea rdi, [readBuffer]
-    call char2Long
+    call char2Long                  ; Converte os caracteres para long
     mov [bagSize], rax
     %include "popall.asm"
     
     sub rsp, 8
-    mov [firstNumberPointer], rsp
+    mov [firstNumberPointer], rsp   ; Armazena o ponteiro para primeira linha de números 
     xor r8, r8
     xor r9, r9
     xor r10, r10
-    firstNumbers:
+    firstNumbers:                   ; Leitura da primeira linha de números
         mov rax, _read
         mov rdi, [dataPointer]
         lea rsi, [readBuffer+r8]
@@ -163,31 +169,31 @@ _start:
        
         xor rax, rax
         mov al, BYTE[readBuffer+r8]
-        cmp al, 10
-        je endFirstNumber
-        cmp al, 48
+        cmp al, 10                  ; Parada em caso de nova linha
+        je endFirstNumber   
+        cmp al, 48                  ; Verifica se é um caractere número para considerar parada para próximo número
         jl newFirstNumber
         cmp al, 57
         jg newFirstNumber
         inc r8
-        jmp firstNumbers
+        jmp firstNumbers            ; Continua lendo o número
         
         newFirstNumber:
             checkFirstNumber:
-            mov rax, _read
-            mov rdi, [dataPointer]
-            lea rsi, [trashBuffer]
-            xor rdx, rdx
-            inc rdx
-            syscall
+                mov rax, _read
+                mov rdi, [dataPointer]
+                lea rsi, [trashBuffer]
+                xor rdx, rdx
+                inc rdx
+                syscall             ; Lê o próximo caractere do arquivo
 
-            xor rax, rax
-            mov al, [trashBuffer]
-            cmp al, 10
-            je endFirstNumber
-            cmp al, 48
-            jge preResetFirst
-            
+                xor rax, rax
+                mov al, [trashBuffer]
+                cmp al, 10          ; Verifica se é a próxima linha
+                je insertFirst
+                cmp al, 48          ; Verifica se é um caractere número
+                jge preResetFirst
+                jl checkFirstNumber      
 
             preResetFirst: 
                 cmp al, 57
@@ -201,44 +207,37 @@ _start:
                     dec rsi
                     xor rdx, rdx
                     inc rdx
-                    syscall
-                
-
-            ;sub rsp, 8
-            ;mov [stackPointer], rsp
-            ;inc r10
-            ;xor r8, r8
+                    syscall         ; Retorna em um o ponteiro no arquivo
             
-            ;mov [rsp], r8
 
+            insertFirst:
             %include "pushall.asm"
             lea rdi, [readBuffer]
-            call char2Long
-            ;mov r8, [stackPointer]
-            ;mov [r8], rax
+            call char2Long          ; Converte um número lido
             mov [stackPointer], rax
             %include "popall.asm"
             
             mov r8, [firstNumberPointer]
-            mov r15, [stackPointer]
+            mov r15, [stackPointer] 
             neg r10
-            mov [r8 + r10 * 8], r15
+            mov [r8 + r10 * 8], r15 ; Armazena o número convertido na pilha
             neg r10
-            sub rsp, 8
+            sub rsp, 8              ; Abre espaço para mais um número
             inc r10
             xor r8, r8
-            jmp firstNumbers
+            cmp BYTE[trashBuffer], 10
+            jne firstNumbers
 
     endFirstNumber:
 
-    mov [itemCount], r10
+    mov [itemCount], r10            ; Armazena a quantidade de itens disponíveis
 
-    sub rsp, 8
-    mov [secondNumberPointer], rsp
+    sub rsp, 8                      
+    mov [secondNumberPointer], rsp  ; Guarda o ponteiro para próxima linha de itens
     xor r8, r8
     xor r9, r9
     xor r10, r10
-    secondNumbers:
+    secondNumbers:                  ; Exatamente igual à primeira linha só altera onde guarda os números
         mov rax, _read
         mov rdi, [dataPointer]
         lea rsi, [readBuffer+r8]
@@ -269,10 +268,10 @@ _start:
             xor rax, rax
             mov al, [trashBuffer]
             cmp al, 10
-            je endSecondNumber
+            je insertSecond
             cmp al, 48
             jge preResetSecond
-            
+            jl checkSecondNumber
 
             preResetSecond: 
                 cmp al, 57
@@ -288,19 +287,10 @@ _start:
                     inc rdx
                     syscall
                 
-
-            ;sub rsp, 8
-            ;mov [stackPointer], rsp
-            ;inc r10
-            ;xor r8, r8
-            
-            ;mov [rsp], r8
-
+            insertSecond:
             %include "pushall.asm"
             lea rdi, [readBuffer]
             call char2Long
-            ;mov r8, [stackPointer]
-            ;mov [r8], rax
             mov [stackPointer], rax
             %include "popall.asm"
             
@@ -314,7 +304,8 @@ _start:
             cmp r10, [itemCount]
             je endSecondNumber
             xor r8, r8
-            jmp secondNumbers
+            cmp BYTE[trashBuffer], 10
+            jne secondNumbers
 
     endSecondNumber:
    
@@ -338,7 +329,7 @@ _start:
     mov rbx, [weightPointer]
     mov rcx, [gainPointer]
     mov rdx, [advantagePointer]
-    itemOrganize:
+    itemOrganize:                       ; Organiza os itens em ordem que prioriza o peso/beníficio
         neg r8 
         cvtsi2sd xmm0, [r10 + r8 * 8]
         cvtsi2sd xmm1, [r11 + r8 * 8]
@@ -353,7 +344,7 @@ _start:
 
         xor r15, r15
         dec r15
-        insertionSort:
+        insertionSort:                      ; Faz um insertionSort nas pilhas reservadas conforme itens com valores melhores aparecem
             inc r15
             movsd xmm3, [rdx + r15 * 8]
             comisd xmm0, xmm3
@@ -379,7 +370,7 @@ _start:
             je pushStackEnd
 
             inc r15
-            pushStack:
+            pushStack:                  ; Quando o item é colocado no meio da pilha é avançado todos os próximos
                 mov rsi, [tempWeight]
                 mov r12, [rbx + r15 * 8]
                 mov [rbx + r15 * 8], rsi
@@ -415,9 +406,9 @@ _start:
         dec r9
         dec r8
         mov rsi, [bagSize]
-        putInBag:
+        putInBag:                   ; Coloca os itens na mochila até o espaço acabar
             inc r8
-            sub rsi, [rbx + r8 * 8]
+            sub rsi, [rbx + r8 * 8] ; Subtraindo os peso dos itens
             cmp rsi, 0
             je fullbag
             jl overflowBag
@@ -442,6 +433,10 @@ endProgram:
 	mov rax, _exit
 	mov rdi, 0
 	syscall
+
+modeError:
+
+    jmp endProgram
 
 char2Long:   ; long char2Int(char *number[rdi])
     push rbp
