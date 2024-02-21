@@ -1,7 +1,7 @@
 ; Mochila binária e fracionária
 ; arquivo: mochile.asm
 ; objetivo: Gerenciar arquivos
-; nasm -f elf64 mochile.asm ; ld mochile.o -o mochile.x
+; nasm -f elf64 mochile.asm ; gcc -m64 -no-pie mochile.o -o mochile.x
 
 %define _exit       60
 %define _write      1
@@ -95,20 +95,23 @@ section .bss
 
 section .text
 
-    global _start
+    global main
 
-_start:
-	
+main:
+	push rbp
+    mov rbp, rsp
+    
+    teste:
     mov rdi, [rsp]
-    xor rsi, rsi
-    inc rsi
-    inc rsi
-    inc rsi
-    cmp rdi, rsi                    ; Teste para verificar a quantidade de argumentos
+    xor rax, rax
+    inc rax
+    inc rax
+    inc rax
+    cmp rdi, rax                    ; Teste para verificar a quantidade de argumentos
     jne endProgram
 
-    mov rsi, [rsp+24]               ; Pegando o argumento de tipo de Mochila
-    mov dil, [rsi]
+    mov rax, [rsi+16]               ; Pegando o argumento de tipo de Mochila
+    mov dil, [rax]
     cmp dil, 70                     ; F
     jne notFracionary
     inc QWORD[fracionaryOrBinary]   ; Marcação de mochila fracionária
@@ -125,7 +128,7 @@ _start:
     
     modeDefined:
     mov rax, _open
-    mov rdi, [rsp+16]
+    mov rdi, [rsi+8]
     mov rsi, readwrite
     mov rdx, userWR
     syscall                         ; Abre o arquivo para leitura
@@ -471,6 +474,10 @@ _start:
                 fracionaryItemAdd:
 
 endProgram:
+    
+    mov rsp, rbp
+    pop rbp
+
 	mov rax, _exit
 	mov rdi, 0
 	syscall
