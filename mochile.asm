@@ -19,7 +19,6 @@
 %define _newLine    10
 %define _return     13
 
-
 section .data
     
 	argErrorS : db "Erro: Quantidade de Parâmetros incorreta", 10, 0
@@ -421,6 +420,8 @@ _start:
         overflowBag:
             add rsi, [rbx + r8 * 8] ; Caso ocorra da capacidade da mochila estourar remove o item
             dec r8
+            cmp BYTE[fracionaryOrBinary], 0
+            jne zeroBag             ; Comparação entre mochila binária e fracionária
             xor r13, r13
             mov rdi, r8 
             inc rdi
@@ -456,13 +457,16 @@ _start:
                 
 
             zeroBag:
-            xor r9, r9
-            xor rax, rax
-            gainSum:
-                add rax, [rcx + r9 * 8]
-                inc r9
-                cmp r8, r9
-                jge gainSum
+                cmp BYTE[fracionaryOrBinary], 0
+                jne fracionayItemEvalue
+                fracionaryItemAdd:
+                xor r9, r9
+                xor rax, rax
+                gainSum:
+                    add rax, [rcx + r9 * 8]
+                    inc r9
+                    cmp r8, r9
+                    jge gainSum
 
 
 endProgram:
@@ -473,6 +477,10 @@ endProgram:
 modeError:
 
     jmp endProgram
+
+fracionayItemEvalue:
+
+    jmp fracionayItemEvalue
 
 char2Long:   ; long char2Int(char *number[rdi])
     push rbp
