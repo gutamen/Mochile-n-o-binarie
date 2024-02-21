@@ -18,8 +18,11 @@
 %define allWRE      666o
 %define _newLine    10
 %define _return     13
+extern printf
 
 section .data
+    
+    printfText: db "A vantagem foi %lf", 10, 0
     
 	argErrorS : db "Erro: Quantidade de Parâmetros incorreta", 10, 0
 	argErrorSL: equ $-argErrorS 
@@ -469,9 +472,14 @@ main:
                     jge gainSum
 
                 cmp BYTE[fracionaryOrBinary], 0
-                jne fracionayItemEvalue
+                jne fracionaryItemEvalue
                 je binaryExtraItems
                 fracionaryItemAdd:
+            
+            xor rax, rax
+            inc rax
+            lea rdi, [printfText]
+            call printf
 
 endProgram:
     
@@ -486,9 +494,11 @@ modeError:
 
     jmp endProgram
 
-fracionayItemEvalue:
+fracionaryItemEvalue:
     inc r8
     cvtsi2sd xmm0, rax
+    cmp r8, [itemCount]
+    je fracionaryItemAdd
     cvtsi2sd xmm1, [rcx + r8 * 8]
     cvtsi2sd xmm2, [rbx + r8 * 8]
     cvtsi2sd xmm3, rsi
