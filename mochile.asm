@@ -420,6 +420,7 @@ _start:
         overflowBag:
             add rsi, [rbx + r8 * 8] ; Caso ocorra da capacidade da mochila estourar remove o item
             dec r8
+            ;jmp zeroBag             ; Teste de adicionar itens
             cmp BYTE[fracionaryOrBinary], 0
             jne zeroBag             ; Comparação entre mochila binária e fracionária
             xor r13, r13
@@ -454,12 +455,8 @@ _start:
                     sub rsp, 8
                     cmp rdi, r9
                     jne filingBag
-                
 
             zeroBag:
-                cmp BYTE[fracionaryOrBinary], 0
-                jne fracionayItemEvalue
-                fracionaryItemAdd:
                 xor r9, r9
                 xor rax, rax
                 gainSum:
@@ -468,6 +465,10 @@ _start:
                     cmp r8, r9
                     jge gainSum
 
+                cmp BYTE[fracionaryOrBinary], 0
+                jne fracionayItemEvalue
+                je binaryExtraItems
+                fracionaryItemAdd:
 
 endProgram:
 	mov rax, _exit
@@ -479,8 +480,39 @@ modeError:
     jmp endProgram
 
 fracionayItemEvalue:
+    inc r8
+    cvtsi2sd xmm0, rax
+    cvtsi2sd xmm1, [rcx + r8 * 8]
+    cvtsi2sd xmm2, [rbx + r8 * 8]
+    cvtsi2sd xmm3, rsi
+    divsd xmm1, xmm2
+    mulsd xmm1, xmm3
+    addsd xmm0, xmm1
+    
 
-    jmp fracionayItemEvalue
+    jmp fracionaryItemAdd
+
+binaryExtraItems:
+    mov r14, [lastItemsPointer]
+    cvtsi2sd xmm0, rax    
+    cmp [itemCount], r9         ; Verifica se não estão todos os itens na mochila
+    je fracionaryItemAdd
+    
+    xor r15, r15
+    xor rdi, rdi
+    cmp r14, rdi
+    je fracionaryItemAdd        ; Verifica se nenhum outro item cabe
+    extraAdd:
+        neg r15
+        mov r13, [r14 + r15 * 8]; Próximo item que cabe na mochila
+        neg r15
+        cmp r13, rdi
+        je fracionaryItemAdd
+        add rax, [rcx + r13 * 8]; Soma no ganho e pula para o próximo
+        cvtsi2sd xmm0, rax    
+        inc r15
+        jmp extraAdd
+
 
 char2Long:   ; long char2Int(char *number[rdi])
     push rbp
@@ -496,7 +528,7 @@ char2Long:   ; long char2Int(char *number[rdi])
         cmp r9b, 48
         jl countEnd
         inc r8
-        jmp countLoop
+        jmp countLoop   ; Conta a quantidade de caracteres do número
 
         countEnd:
     
@@ -506,7 +538,7 @@ char2Long:   ; long char2Int(char *number[rdi])
     xor r10, r10
     converterLoop:
         xor rax, rax
-        mov al, [rdi+rcx-1]
+        mov al, [rdi+rcx-1] ; Move para al dígito por dígito para multiplicar para conversão
         sub rax, 48
         imul rax, r8
         imul r8, 10
