@@ -28,7 +28,7 @@ extern clock
 section .data
     
     printfText: db "A vantagem foi %lf", 10, 0
-    printfTime: db "Tempo de execução: %ld nanossegundos", 10, 0
+    printfTime: db "Tempo de execução:", 10, "%lf segundos", 10, "%ld nanosegundos", 10, 0
     
 	argErrorS : db "Erro: Parâmetros incorretos", 10, 0
 	argErrorSL: equ $-argErrorS 
@@ -506,6 +506,14 @@ main:
             add r15, [endTime + 8]
             sub r15, [beginTime + 8]
 
+            cvtsi2sd xmm0, r15
+            mov rax, _billion
+            cvtsi2sd xmm1, rax
+
+            divsd xmm0, xmm1
+
+            xor rax, rax
+            inc rax
             lea rdi, [printfTime]
             mov rsi, r15
             call printf
