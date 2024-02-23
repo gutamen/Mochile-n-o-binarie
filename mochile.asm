@@ -3,28 +3,34 @@
 ; objetivo: Gerenciar arquivos
 ; nasm -f elf64 mochile.asm ; gcc -m64 -no-pie mochile.o -o mochile.x
 
-%define _exit       60
-%define _write      1
-%define _open       2
-%define _read       0
-%define _seek       8
-%define _close      3
-%define _fstat      4
-%define readOnly    0o    		; flag open()
-%define writeOnly   1o    			; flag open()
-%define readwrite   2o    			; flag open()
-%define openrw      102o  		; flag open()
-%define userWR      644o  		; Read+Write+Execute
-%define allWRE      666o
-%define _newLine    10
-%define _return     13
+%define _exit           60
+%define _write          1
+%define _open           2
+%define _read           0
+%define _seek           8
+%define _close          3
+%define _fstat          4
+%define readOnly        0o    		; flag open()
+%define writeOnly       1o    		; flag open()
+%define readwrite       2o    		; flag open()
+%define openrw          102o  		; flag open()
+%define userWR          644o  		; Read+Write+Execute
+%define allWRE          666o
+%define _newLine        10
+%define _return         13
+%define _clock_gettime  0xe4
+%define _billion        1000000000
+
 extern printf
+extern time
+extern clock
 
 section .data
     
     printfText: db "A vantagem foi %lf", 10, 0
+    printfTime: db "Tempo de execução: %ld nanossegundos", 10, 0
     
-	argErrorS : db "Erro: Quantidade de Parâmetros incorreta", 10, 0
+	argErrorS : db "Erro: Parâmetros incorretos", 10, 0
 	argErrorSL: equ $-argErrorS 
 
     arqErrorS : db "Erro: Arquivo não foi aberto", 10, 0
@@ -77,7 +83,9 @@ section .data
 
 
 section .bss
-    
+   
+    beginTime           : resq 4
+    endTime             : resq 4
     fracionaryOrBinary  : resq 1
     stackPointer        : resq 1
     firstNumberPointer  : resq 1
@@ -104,7 +112,6 @@ main:
 	push rbp
     mov rbp, rsp
     
-    teste:
     mov rdi, [rsp]
     xor rax, rax
     inc rax
@@ -314,7 +321,12 @@ main:
             jne secondNumbers
 
     endSecondNumber:
-   
+    mov rax, _clock_gettime
+    xor rdi, rdi
+    inc rdi
+    lea rsi, [beginTime]
+    syscall
+
     bagInit:
     xor rbx, rbx
     mov rbx, 8
@@ -479,6 +491,23 @@ main:
             xor rax, rax
             inc rax
             lea rdi, [printfText]
+            call printf
+    
+            mov rax, _clock_gettime
+            xor rdi, rdi
+            inc rdi
+            lea rsi, [endTime]
+            syscall
+            
+            mov r15, [endTime]
+            sub r15, [beginTime]
+            imul r15, _billion
+            
+            add r15, [endTime + 8]
+            sub r15, [beginTime + 8]
+
+            lea rdi, [printfTime]
+            mov rsi, r15
             call printf
 
 endProgram:
