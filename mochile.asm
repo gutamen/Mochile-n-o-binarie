@@ -1,7 +1,7 @@
 ; Mochila binária e fracionária
 ; arquivo: mochile.asm
 ; objetivo: Gerenciar arquivos
-; nasm -f elf64 mochile.asm ; gcc -m64 -no-pie mochile.o -o mochile.x
+; nasm -f elf64 mochile.asm ; gcc -m64 -no-pie mochile.o -o mochile.x  
 
 %define _exit           60
 %define _write          1
@@ -364,11 +364,14 @@ main:
         dec r15
         insertionSort:                      ; Faz um insertionSort nas pilhas reservadas conforme itens com valores melhores aparecem
             inc r15
+            cmp r15, r8
+            je lastItem
             movsd xmm3, [rdx + r15 * 8]
             comisd xmm0, xmm3
             jb insertionSort
             je insertionSort
             
+            lastItem:
             mov rsi, [rbx + r15 * 8]
             mov [tempWeight], rsi
             mov rsi, [rcx + r15 * 8]
@@ -448,13 +451,18 @@ main:
             sub rsp, 8
             mov [lastItemsPointer], rsp ; Guarda na pilha um ponteiro para armazenar os itens que serão incluídos
             mov r14, rsp
+            xor r10, r10
             mov [r14], r10
             xor r11, r11
             filingBag:
                 sub rsi, [rbx + rdi * 8]; Teste dos próximos itens
-                xor r10, r10
-                mov [r14 + r11 * 8], rdi        
+                
+                mov [r14 + r11 * 8], rdi    
+                dec r11
+                mov [r14 + r11 * 8], r10
+                inc r11
                 cmp rsi, r10
+
                 je zeroBag              ; Enquanto houver espaço os testes continuam ou acabar os itens para teste
                 jg nextItem
                 jl overflowItem
@@ -469,8 +477,9 @@ main:
 
                 nextItem:
                     inc rdi
-                    inc r11
+                    dec r11
                     sub rsp, 8
+                    mov [rsp], r10
                     cmp rdi, r9
                     jne filingBag
 
@@ -488,6 +497,13 @@ main:
                 je binaryExtraItems
                 fracionaryItemAdd:
             
+            mov rax, rsp
+            and rax, 8
+            cmp rax, 0
+            je notEight
+            sub rsp, 8
+            notEight:
+
             xor rax, rax
             inc rax
             lea rdi, [printfText]
@@ -558,10 +574,13 @@ binaryExtraItems:
     je fracionaryItemAdd        ; Verifica se nenhum outro item cabe
     extraAdd:
         neg r15
+        teste:
         mov r13, [r14 + r15 * 8]; Próximo item que cabe na mochila
+        teste1:
         neg r15
         cmp r13, rdi
         je fracionaryItemAdd
+        teste2:
         add rax, [rcx + r13 * 8]; Soma no ganho e pula para o próximo
         cvtsi2sd xmm0, rax    
         inc r15
