@@ -2,7 +2,7 @@
 ; arquivo: mochile.asm
 ; objetivo: Gerenciar arquivos
 ; nasm -f elf64 mochile.asm ; gcc -m64 -no-pie mochile.o -o mochile.x  
-
+; excução ./mochile.x [nome-arquivo] B(binária)|F(fracionária)
 %define _exit           60
 %define _write          1
 %define _open           2
