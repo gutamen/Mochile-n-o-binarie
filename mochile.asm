@@ -327,96 +327,96 @@ main:
     lea rsi, [beginTime]
     syscall
 
-    bagInit:
-    xor rbx, rbx
-    mov rbx, 8
-    imul rbx, [itemCount]
+    bagInit:                                ; NESSE PONTO O ALGORITMO COMEÇA
+        xor rbx, rbx
+        mov rbx, 8
+        imul rbx, [itemCount]
     
-    sub rsp, rbx
-    mov [gainPointer], rsp
-    sub rsp, rbx
-    mov [weightPointer], rsp
-    sub rsp, rbx
-    mov [advantagePointer], rsp
+        sub rsp, rbx
+        mov [gainPointer], rsp
+        sub rsp, rbx
+        mov [weightPointer], rsp
+        sub rsp, rbx
+        mov [advantagePointer], rsp
 
-    xor r8, r8
-    xor r9, r9
-    xor r15, r15
-    mov r10, [firstNumberPointer]       ; Considerando primeira linha como ganho
-    mov r11, [secondNumberPointer]      ; Considerando segunda linha como peso
-    mov rbx, [weightPointer]
-    mov rcx, [gainPointer]
-    mov rdx, [advantagePointer]
-    itemOrganize:                       ; Organiza os itens em ordem que prioriza o peso/beníficio
-        neg r8 
-        cvtsi2sd xmm0, [r10 + r8 * 8]
-        cvtsi2sd xmm1, [r11 + r8 * 8]
-        neg r8
-
-        xor rdi, rdi
-        mov [rbx + r8 * 8], rdi
-        mov [rcx + r8 * 8], rdi
-        mov [rdx + r8 * 8], rdi
-       
-        divsd xmm0, xmm1
-
+        xor r8, r8
+        xor r9, r9
         xor r15, r15
-        dec r15
-        insertionSort:                      ; Faz um insertionSort nas pilhas reservadas conforme itens com valores melhores aparecem
-            inc r15
-            cmp r15, r8
-            je lastItem
-            movsd xmm3, [rdx + r15 * 8]
-            comisd xmm0, xmm3
-            jb insertionSort
-            je insertionSort
+        mov r10, [firstNumberPointer]       ; Considerando primeira linha como ganho
+        mov r11, [secondNumberPointer]      ; Considerando segunda linha como peso
+        mov rbx, [weightPointer]
+        mov rcx, [gainPointer]
+        mov rdx, [advantagePointer]
+        itemOrganize:                       ; Organiza os itens em ordem que prioriza o peso/beníficio
+            neg r8 
+            cvtsi2sd xmm0, [r10 + r8 * 8]
+            cvtsi2sd xmm1, [r11 + r8 * 8]
+            neg r8
+
+            xor rdi, rdi
+            mov [rbx + r8 * 8], rdi
+            mov [rcx + r8 * 8], rdi
+            mov [rdx + r8 * 8], rdi
+       
+            divsd xmm0, xmm1
+
+            xor r15, r15
+            dec r15
+            insertionSort:                      ; Faz um insertionSort nas pilhas reservadas conforme itens com valores melhores aparecem
+                inc r15
+                cmp r15, r8
+                je lastItem
+                movsd xmm3, [rdx + r15 * 8]
+                comisd xmm0, xmm3
+                jb insertionSort
+                je insertionSort
             
-            lastItem:
-            mov rsi, [rbx + r15 * 8]
-            mov [tempWeight], rsi
-            mov rsi, [rcx + r15 * 8]
-            mov [tempGain], rsi
-            mov rsi, [rdx + r15 * 8]
-            mov [tempAdvantage], rsi
+                lastItem:
+                mov rsi, [rbx + r15 * 8]
+                mov [tempWeight], rsi
+                mov rsi, [rcx + r15 * 8]
+                mov [tempGain], rsi
+                mov rsi, [rdx + r15 * 8]
+                mov [tempAdvantage], rsi
 
-            neg r8
-            mov rsi, [r11 + r8 * 8]
-            mov [rbx + r15 * 8], rsi
-            mov rsi, [r10 + r8 * 8]
-            neg r8
-            mov [rcx + r15 * 8], rsi
-            movsd [rdx + r15 * 8], xmm0
-             
-            cmp r8, r15
-            je pushStackEnd
-
-            inc r15
-            pushStack:                  ; Quando o item é colocado no meio da pilha é avançado todos os próximos
-                mov rsi, [tempWeight]
-                mov r12, [rbx + r15 * 8]
+                neg r8
+                mov rsi, [r11 + r8 * 8]
                 mov [rbx + r15 * 8], rsi
-                mov [tempWeight], r12
-    
-                mov rsi, [tempGain]
-                mov r12, [rcx + r15 * 8]
+                mov rsi, [r10 + r8 * 8]
+                neg r8
                 mov [rcx + r15 * 8], rsi
-                mov [tempGain], r12
-
-                mov rsi, [tempAdvantage]
-                mov r12, [rdx + r15 * 8]
-                mov [rdx + r15 * 8], rsi
-                mov [tempAdvantage], r12
+                movsd [rdx + r15 * 8], xmm0
+             
+                cmp r8, r15
+                je pushStackEnd
 
                 inc r15
-                cmp r8, r15
-                jge pushStack
+                pushStack:                  ; Quando o item é colocado no meio da pilha é avançado todos os próximos
+                    mov rsi, [tempWeight]
+                    mov r12, [rbx + r15 * 8]
+                    mov [rbx + r15 * 8], rsi
+                    mov [tempWeight], r12
+    
+                    mov rsi, [tempGain]
+                    mov r12, [rcx + r15 * 8]
+                    mov [rcx + r15 * 8], rsi
+                    mov [tempGain], r12
+
+                    mov rsi, [tempAdvantage]
+                    mov r12, [rdx + r15 * 8]
+                    mov [rdx + r15 * 8], rsi
+                    mov [tempAdvantage], r12
+
+                    inc r15
+                    cmp r8, r15
+                    jge pushStack           ; For para empurrar o vetor em inserctionSort
                 
-            pushStackEnd: 
+                pushStackEnd: 
 
 
 
         inc r8
-        cmp r8, [itemCount]
+        cmp r8, [itemCount] ; For itemOrganize
         je endOrganize
         jmp itemOrganize
     
@@ -441,9 +441,9 @@ main:
         overflowBag:
             add rsi, [rbx + r8 * 8] ; Caso ocorra da capacidade da mochila estourar remove o item
             dec r8
-            ;jmp zeroBag             ; Teste de adicionar itens
-            cmp BYTE[fracionaryOrBinary], 0
-            jne zeroBag             ; Comparação entre mochila binária e fracionária
+            ;jmp zeroBag                    ; Teste de adicionar itens
+            cmp BYTE[fracionaryOrBinary], 0 ; Esse IF que deve ser contado separado entre a mochila binária e fracionária
+            jne zeroBag                     ; Comparação entre mochila binária e fracionária 
             xor r13, r13
             mov rdi, r8 
             inc rdi
@@ -481,7 +481,7 @@ main:
                     sub rsp, 8
                     mov [rsp], r10
                     cmp rdi, r9
-                    jne filingBag
+                    jne filingBag   ; for filingBag que é para encontrar os itens que ainda podem entrar na mochila quando é binária
 
             zeroBag:
                 xor r9, r9
@@ -493,9 +493,9 @@ main:
                     jge gainSum
 
                 cmp BYTE[fracionaryOrBinary], 0
-                jne fracionaryItemEvalue
+                jne fracionaryItemEvalue            ; Esse IF divide entre o comportamento da binária e fracionária, para dividir contar o do algoritmo correspondente na Label
                 je binaryExtraItems
-                fracionaryItemAdd:
+                fracionaryItemAdd:                  ; NESSE PONTO O ALGORITMO ACABA
             
             mov rax, rsp
             and rax, 8
